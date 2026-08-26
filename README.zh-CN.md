@@ -15,7 +15,10 @@
 <p align="center"><a href="README.md">English</a></p>
 
 <p align="center">
-  <img src="assets/dsh-artifact-banner.png" alt="dsh-artifact — DeepSeek Harness 原生 ECharts 与 Mermaid 可视化画布" width="100%" />
+  <picture>
+    <source media="(prefers-reduced-motion: reduce)" srcset="assets/readme/dsh-artifact-banner.svg" />
+    <img src="assets/readme/dsh-artifact-banner.gif" alt="dsh-artifact 将自然语言请求转化为 DeepSeek Harness 中原生的 ECharts 与 Mermaid 可视化" width="100%" />
+  </picture>
 </p>
 
 ## 项目定位

@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+  <title id="title">dsh-artifact</title>
+  <desc id="desc">Natural-language requests become native ECharts options or Mermaid diagrams inside DeepSeek Harness.</desc>
+
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FBFAF7"/>
+      <stop offset="1" stop-color="#F5F2EB"/>
+    </linearGradient>
+    <linearGradient id="blueArc" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#315DD6"/>
+      <stop offset="1" stop-color="#4677E8"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="420" rx="28" fill="url(#paper)"/>
+  <path d="M438 44v332" stroke="#DDD9D0"/>
+
+  <g id="identity" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif">
+    <text x="48" y="70" font-size="15" font-weight="700" letter-spacing="3.1" fill="#173149">DEEPSEEK HARNESS PLUGIN</text>
+    <text x="48" y="159" font-family="Georgia, 'Songti SC', serif" font-size="67" font-weight="700" letter-spacing="-2.5" fill="#0D263A">dsh-artifact</text>
+    <text x="48" y="202" font-size="21" font-weight="500" fill="#586B79">Native visualizations, in conversation.</text>
+
+    <g transform="translate(48 244)" font-size="14" font-weight="750" letter-spacing="1.7">
+      <text x="0" y="16" fill="#315DD6">INTENT</text>
+      <path d="M76 10h47m-12-9 12 9-12 9" fill="none" stroke="#173149" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="143" y="16" fill="#EF4B55">OPTION</text>
+      <path d="M224 10h47m-12-9 12 9-12 9" fill="none" stroke="#173149" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="291" y="16" fill="#62B94E">CANVAS</text>
+    </g>
+
+    <path d="M48 304h338" stroke="#173149" stroke-width="1.5"/>
+    <g transform="translate(48 330)">
+      <circle cx="10" cy="10" r="10" fill="#315DD6"/>
+      <circle cx="40" cy="10" r="10" fill="#41B5D7"/>
+      <circle cx="70" cy="10" r="10" fill="#62B94E"/>
+      <circle cx="100" cy="10" r="10" fill="#F5B62E"/>
+      <circle cx="130" cy="10" r="10" fill="#EF4B55"/>
+      <circle cx="160" cy="10" r="10" fill="#8E49B8"/>
+      <text x="0" y="50" font-family="Georgia, 'Songti SC', serif" font-size="20" font-style="italic" fill="#586B79">Ask clearly. Draw natively.</text>
+    </g>
+  </g>
+
+  <g id="system-map" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif">
+    <text x="486" y="65" font-size="15" font-weight="700" letter-spacing="3" fill="#173149">FROM INTENT TO NATIVE FORM</text>
+    <path d="M486 82h666" stroke="#173149" stroke-width="1.5"/>
+
+    <g id="request-card" transform="translate(480 158)">
+      <rect width="168" height="98" rx="18" fill="#FFFFFF" stroke="#D8D3C9" stroke-width="1.5"/>
+      <circle cx="22" cy="24" r="5" fill="#315DD6"/>
+      <text x="36" y="30" font-size="13" font-weight="750" letter-spacing="1.2" fill="#315DD6">YOUR REQUEST</text>
+      <text x="20" y="59" font-family="Georgia, 'Songti SC', serif" font-size="18" font-weight="700" letter-spacing="-0.2" fill="#0D263A">Plot the trend</text>
+      <text x="20" y="81" font-size="15" fill="#667681">plain language</text>
+    </g>
+
+    <g id="input-path">
+      <path d="M648 207h47" fill="none" stroke="#173149" stroke-width="2" stroke-linecap="round"/>
+      <path d="m684 198 11 9-11 9" fill="none" stroke="#173149" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <g id="option-core">
+      <circle cx="798" cy="207" r="93" fill="none" stroke="#D8D3C9" stroke-width="1.5"/>
+      <circle cx="798" cy="207" r="67" fill="#FBFAF7" stroke="#173149" stroke-width="1.7"/>
+      <text x="798" y="191" text-anchor="middle" font-family="Georgia, 'Songti SC', serif" font-size="18" font-weight="700" fill="#0D263A">native option</text>
+      <text x="798" y="228" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="30" fill="#173149">{ }</text>
+      <text x="798" y="251" text-anchor="middle" font-size="12" font-weight="700" letter-spacing="1.5" fill="#6F7E87">DECLARATIVE</text>
+    </g>
+
+    <g id="engine-ring" fill="none" stroke-width="17">
+      <path d="M798 114a93 93 0 0 1 65 26" stroke="url(#blueArc)"/>
+      <path d="M868 146a93 93 0 0 1 23 61" stroke="#41B5D7"/>
+      <path d="M891 207a93 93 0 0 1-25 63" stroke="#62B94E"/>
+      <path d="M860 276a93 93 0 0 1-62 24" stroke="#F5B62E"/>
+      <path d="M732 272a93 93 0 0 1-27-65" stroke="#EF4B55"/>
+      <path d="M705 207a93 93 0 0 1 27-65" stroke="#8E49B8"/>
+    </g>
+
+    <g id="output-paths" fill="none" stroke="#173149" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M891 207h42v-58h31"/>
+      <path d="M933 207v72h31"/>
+      <circle cx="933" cy="207" r="5" fill="#173149" stroke="none"/>
+    </g>
+
+    <g id="echarts-card" transform="translate(964 105)">
+      <rect width="188" height="88" rx="22" fill="#FFFFFF" stroke="#173149" stroke-width="1.5"/>
+      <g transform="translate(18 24)">
+        <path d="M0 36V4M0 36h39" fill="none" stroke="#A6B0B7" stroke-width="1.5"/>
+        <rect x="7" y="23" width="6" height="13" rx="1" fill="#315DD6"/>
+        <rect x="17" y="14" width="6" height="22" rx="1" fill="#62B94E"/>
+        <rect x="27" y="6" width="6" height="30" rx="1" fill="#EF4B55"/>
+        <path d="m7 21 10-10 9 5 8-12" fill="none" stroke="#F5B62E" stroke-width="2"/>
+      </g>
+      <text x="70" y="40" font-family="Georgia, 'Songti SC', serif" font-size="24" font-weight="700" fill="#0D263A">ECharts</text>
+      <text x="70" y="62" font-size="14" fill="#667681">interactive charts</text>
+    </g>
+
+    <g id="mermaid-card" transform="translate(964 235)">
+      <rect width="188" height="88" rx="22" fill="#FFFFFF" stroke="#173149" stroke-width="1.5"/>
+      <g transform="translate(20 22)" fill="none" stroke="#9BA7AF" stroke-width="1.6">
+        <path d="M5 7h18v14h16v17"/>
+        <circle cx="5" cy="7" r="5" fill="#8E49B8" stroke="none"/>
+        <circle cx="23" cy="21" r="5" fill="#62B94E" stroke="none"/>
+        <circle cx="39" cy="38" r="5" fill="#F5B62E" stroke="none"/>
+      </g>
+      <text x="70" y="40" font-family="Georgia, 'Songti SC', serif" font-size="24" font-weight="700" fill="#0D263A">Mermaid</text>
+      <text x="70" y="62" font-size="14" fill="#667681">native diagrams</text>
+    </g>
+
+    <g transform="translate(600 366)" font-size="13" font-weight="700" letter-spacing="1.6" fill="#667681">
+      <circle cx="5" cy="-4" r="5" fill="#62B94E"/>
+      <text x="18" y="0">REAL ENGINES</text>
+      <text x="142" y="0">PURE JSON</text>
+      <text x="252" y="0">INTERACTIVE CANVAS</text>
+    </g>
+  </g>
+</svg>
