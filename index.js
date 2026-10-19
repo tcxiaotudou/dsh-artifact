@@ -64,11 +64,12 @@ const SKILL_CONTENT = `# dsh-artifact 渲染指南
 - \`option\` 会传给完整的 Apache ECharts 6 实例：按官方 API 的组件、坐标系和 series 写法生成，不要为插件迁就成少数预设。支持 ECharts 内置的 series、dataset、dataZoom、visualMap、timeline、graphic、aria、transform、markPoint / markLine 等所有 JSON 可表达的配置。
 - 支持全部内置图表类型：bar / line / pie / scatter / effectScatter / heatmap / radar / gauge / funnel / sankey / graph / tree / treemap / sunburst / map / lines / boxplot / candlestick / pictorialBar / themeRiver / parallel / custom 等；按官方要求补齐其坐标系与组件（如 calendar / geo / polar / radar / parallel）。
 - \`option\` 是纯 JSON；函数不能安全地穿过工具调用边界。formatter 使用字符串模板（如 "{c}%"）；需要函数回调的极少数官方能力（如 custom.renderItem）应改用 \`render_html\` 自包含实现。
+- 数值图表启用 \`tooltip\`：有坐标轴的组合图优先用 \`{"trigger":"axis","confine":true}\`，饼图等用 \`{"trigger":"item","confine":true}\`，保留原生格式器即可显示各系列数值。自定义提示模板时，\`{a}\` 是系列名称，\`{b}\` 是类目名称，\`{c}\` 才是数据值；多系列使用 \`{b0}<br/>{a0}: {c0}<br/>{a1}: {c1}\`，单位跟在对应值后。不要把 \`{a0}\` / \`{a1}\` 当成数值；坐标轴标签的占位符则是 \`{value}\`。
 - 多面板图表在 xAxis / yAxis 上设置 gridIndex；每个序列通过 xAxisIndex / yAxisIndex（或对应 ID）绑定同一 grid 内的坐标轴。不要在 series 上设置 gridIndex。工具校验失败时修正配置后重试。
 - 地图需要先注册 GeoJSON/SVG：在顶层传 \`maps\`，如 \`{"engine":"echarts","maps":{"world":{...GeoJSON...}},"option":{"geo":{"map":"world"},"series":[{"type":"map","map":"world"}]}}\`。插件会在 \`echarts.init\` 前调用官方 \`echarts.registerMap\`。
 - 示例（季度收入柱状图）：
 \`\`\`json
-{"engine":"echarts","title":"季度收入","option":{"title":{"text":"季度收入（万元）"},"xAxis":{"type":"category","data":["Q1","Q2","Q3","Q4"]},"yAxis":{"type":"value"},"series":[{"type":"bar","data":[120,180,150,210]}]}}
+{"engine":"echarts","title":"季度收入","option":{"title":{"text":"季度收入（万元）"},"tooltip":{"trigger":"axis","confine":true},"xAxis":{"type":"category","data":["Q1","Q2","Q3","Q4"]},"yAxis":{"type":"value"},"series":[{"type":"bar","data":[120,180,150,210]}]}}
 \`\`\`
 
 ### mermaid（流程图 / 图）
@@ -374,7 +375,7 @@ function createRenderArtifactTool() {
             { type: 'object', description: 'The ECharts option as a plain JSON object.' },
             { type: 'string', description: 'The ECharts option serialized as a JSON string.' },
           ],
-          description: 'ECharts chart option (engine=echarts). Plain JSON, no functions.',
+          description: 'ECharts chart option (engine=echarts). Plain JSON, no functions. Enable tooltip for numeric charts; native axis/item tooltips display values. In tooltip string templates, {a} is series name, {b} is category, {c} is value; use {c0}/{c1} for multiple series values.',
         },
         maps: {
           oneOf: [
