@@ -64,6 +64,7 @@ const SKILL_CONTENT = `# dsh-artifact 渲染指南
 - \`option\` 会传给完整的 Apache ECharts 6 实例：按官方 API 的组件、坐标系和 series 写法生成，不要为插件迁就成少数预设。支持 ECharts 内置的 series、dataset、dataZoom、visualMap、timeline、graphic、aria、transform、markPoint / markLine 等所有 JSON 可表达的配置。
 - 支持全部内置图表类型：bar / line / pie / scatter / effectScatter / heatmap / radar / gauge / funnel / sankey / graph / tree / treemap / sunburst / map / lines / boxplot / candlestick / pictorialBar / themeRiver / parallel / custom 等；按官方要求补齐其坐标系与组件（如 calendar / geo / polar / radar / parallel）。
 - \`option\` 是纯 JSON；函数不能安全地穿过工具调用边界。formatter 使用字符串模板（如 "{c}%"）；需要函数回调的极少数官方能力（如 custom.renderItem）应改用 \`render_html\` 自包含实现。
+- 多面板图表在 xAxis / yAxis 上设置 gridIndex；每个序列通过 xAxisIndex / yAxisIndex（或对应 ID）绑定同一 grid 内的坐标轴。不要在 series 上设置 gridIndex。工具校验失败时修正配置后重试。
 - 地图需要先注册 GeoJSON/SVG：在顶层传 \`maps\`，如 \`{"engine":"echarts","maps":{"world":{...GeoJSON...}},"option":{"geo":{"map":"world"},"series":[{"type":"map","map":"world"}]}}\`。插件会在 \`echarts.init\` 前调用官方 \`echarts.registerMap\`。
 - 示例（季度收入柱状图）：
 \`\`\`json
@@ -266,6 +267,37 @@ function checkEcharts(option) {
   if (bytes > OPTION_MAX_BYTES) {
     return `${TOOL_NAME}: "option" is too large (${bytes} bytes over the ${OPTION_MAX_BYTES}-byte cap).`
   }
+  // 坐标轴绑定在工具边界校验，避免错误只在浏览器出现、模型却收到成功。
+  const base = option.baseOption ?? option
+  const axes = { xAxis: [].concat(base.xAxis ?? []), yAxis: [].concat(base.yAxis ?? []) }
+  const grids = [].concat(base.grid ?? [{}])
+  for (const [index, series] of [].concat(base.series ?? []).entries()) {
+    if (!series || typeof series !== 'object') continue
+    if (series.gridIndex !== undefined) {
+      return `${TOOL_NAME}: series[${index}].gridIndex is not a series axis binding. Set gridIndex on xAxis/yAxis, then use series.xAxisIndex/yAxisIndex (or xAxisId/yAxisId). Correct the option and retry.`
+    }
+    if (series.coordinateSystem && series.coordinateSystem !== 'cartesian2d') continue
+    if (series.coordinateSystem !== 'cartesian2d'
+      && series.xAxisIndex === undefined && series.yAxisIndex === undefined
+      && series.xAxisId === undefined && series.yAxisId === undefined) continue
+    const gridIndexes = []
+    for (const type of ['xAxis', 'yAxis']) {
+      const id = series[`${type}Id`]
+      const axisIndex = series[`${type}Index`] ?? 0
+      const axis = id !== undefined ? axes[type].find((item) => item?.id === id)
+        : Number.isInteger(axisIndex) && axisIndex >= 0 ? axes[type][axisIndex] : undefined
+      if (!axis) return `${TOOL_NAME}: series[${index}] references a missing ${type}. Correct ${type}Index/${type}Id and retry.`
+      const gridIndex = axis.gridId !== undefined
+        ? grids.findIndex((grid) => grid?.id === axis.gridId) : axis.gridIndex ?? 0
+      if (!Number.isInteger(gridIndex) || gridIndex < 0 || !grids[gridIndex]) {
+        return `${TOOL_NAME}: series[${index}] references ${type} in a missing grid. Correct the axis gridIndex/gridId and retry.`
+      }
+      gridIndexes.push(gridIndex)
+    }
+    if (gridIndexes[0] !== gridIndexes[1]) {
+      return `${TOOL_NAME}: series[${index}] binds xAxis and yAxis from different grids. Use xAxisIndex/yAxisIndex (or IDs) from the same grid and retry.`
+    }
+  }
   return null
 }
 
@@ -389,13 +421,13 @@ function createRenderArtifactTool() {
       }
       const option = normalizeObjectPayload(a.option)
       const err = checkEcharts(option)
-      if (err) return err
+      if (err) throw new Error(err)
       const maps = normalizeObjectPayload(a.maps)
       if (a.maps !== undefined && maps === undefined) {
-        return `${TOOL_NAME}: "maps" must be a JSON object keyed by map name.`
+        throw new Error(`${TOOL_NAME}: "maps" must be a JSON object keyed by map name.`)
       }
       const mapErr = checkMaps(maps)
-      if (mapErr) return mapErr
+      if (mapErr) throw new Error(mapErr)
       const series = Array.isArray(option.series) ? option.series.length : 0
       const mapCount = maps ? Object.keys(maps).length : 0
       return `Rendered ECharts chart${title}${series > 0 ? ` (${series} series)` : ''}${mapCount ? ` with ${mapCount} registered map${mapCount === 1 ? '' : 's'}` : ''}. The user now sees the interactive chart card.`
