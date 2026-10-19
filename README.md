@@ -34,7 +34,7 @@ Your request  →  model understands the intent  →  ECharts option / Mermaid c
 
 ### From a request to a native canvas
 
-Describe the visualization you need in ordinary language. `dsh-artifact` keeps the complete workflow inside the conversation: the model reasons about the request, prepares a native engine payload, and renders the result as an interactive canvas with appearance controls and PNG export.
+Describe the visualization you need in ordinary language. `dsh-artifact` keeps the complete workflow inside the conversation: the model reasons about the request, prepares a native engine payload, and renders the result as an interactive canvas with default styling and PNG export.
 
 <p align="center">
   <a href="https://raw.githubusercontent.com/sumarilkkxx/dsh-artifact/master/assets/dsh-artifact-workflow.webp" target="_blank" rel="noopener noreferrer" title="Open the full-size animation">
@@ -54,7 +54,7 @@ Describe the visualization you need in ordinary language. `dsh-artifact` keeps t
 | **Broad ECharts coverage** | Native JSON-expressible series and components: cartesian, pie, radar, calendar heatmap, graph, sankey, tree, map, parallel, timeline, `dataset`, `visualMap`, `dataZoom`, and more |
 | **Diagram-first Mermaid** | Flowcharts, sequence, class, state, ER, gantt, journey, pie, and other Mermaid-supported diagrams |
 | **Interactive canvas** | Tooltips, legends, zoom, pan, 3D controls, and responsive resizing come from the actual renderer |
-| **Appearance controls** | In-canvas ECharts-inspired palettes and light/dark backgrounds; photographic globes retain their real-world surface and expose background mode only |
+| **Default appearance** | Uses the generated palette and system background mode automatically, with no in-canvas style picker |
 | **Image download** | Download ECharts, ECharts-GL, and Mermaid canvases as 2× PNG images using the active background; standard ECharts and Mermaid diagrams also support SVG download |
 | **Safe by design** | Pure JSON across the declarative boundary; isolated custom HTML runs in a CSP-restricted sandbox iframe |
 
@@ -88,7 +88,7 @@ Ask for the result you need. For example:
 
 > Draw a sequence diagram for OAuth login with success and failure paths.
 
-The model calls `render_artifact` and returns a live canvas in the conversation. Use the **Appearance** control to switch palette/background where appropriate, and the adjacent **Download** action to save a PNG.
+The model calls `render_artifact` and returns a live canvas in the conversation. Charts use their default appearance. Use the **Download** action to save a PNG.
 
 ## Engine contract
 
@@ -156,7 +156,7 @@ dsh plugin --profile web add .
 | Path | Description |
 |---|---|
 | `index.js` | Host tool definitions, validation, prompt guidance, and local asset route |
-| `client.js` | DeepSeek Harness toolviews, renderer dispatch, appearance controls, and PNG export |
+| `client.js` | DeepSeek Harness toolviews, renderer dispatch, render readiness, and PNG export |
 | `assets/` | Committed ECharts, ECharts-GL, Mermaid, and project media assets |
 | `docs/showcase/` | Source and pixel assets for the README motion study |
 | `scripts/build.mjs` | Copies renderer distributions into `assets/` |
@@ -167,7 +167,7 @@ The plugin has no `@deepseek-ai/*` runtime imports. ECharts, ECharts-GL, and Mer
 
 - [x] Native ECharts and Mermaid canvases
 - [x] ECharts-GL compatibility for JSON-expressible ECharts 3D options
-- [x] Light/dark appearance controls and PNG export
+- [x] Automatic light/dark appearance and PNG export
 - [x] Sandboxed HTML escape hatch
 - [ ] Optional action round-trip from a canvas back to the model
 - [ ] More declarative rendering engines

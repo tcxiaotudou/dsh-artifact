@@ -83,13 +83,13 @@ const SKILL_CONTENT = `# dsh-artifact 渲染指南
 ### ECharts-GL（官方 3D 数据图）
 - 3D 仍使用 \`engine:"echarts"\` 和官方 ECharts option；检测到 \`scatter3D\` / \`bar3D\` / \`line3D\` / \`lines3D\` / \`surface\` / \`map3D\` / \`globe\` 等配置时，插件按需加载官方 ECharts-GL 扩展。
 - 示例（3D 散点图）：\`{"engine":"echarts","option":{"grid3D":{},"xAxis3D":{"type":"value"},"yAxis3D":{"type":"value"},"zAxis3D":{"type":"value"},"series":[{"type":"scatter3D","data":[[1,2,3],[2,1,4]]}]}}\`。
-- 对 \`globe\`、\`grid3D\` / \`surface\`、\`geo3D\` / \`map3D\`，插件只补齐缺失的质量基线（离线纹理/HDR、光照、后处理、相机与交互）；用户 option 中的同名配置始终优先。画布中的「外观」菜单可切换主题和深浅模式，且会同步改变 3D 画布背景。
+- 对 \`globe\`、\`grid3D\` / \`surface\`、\`geo3D\` / \`map3D\`，插件只补齐缺失的质量基线（离线纹理/HDR、光照、后处理、相机与交互）；用户 option 中的同名配置始终优先。
 - 高质量地球请生成 \`globe:{}\`，不要用大量 \`scatter3D\` 点阵伪造大陆；可另加 \`scatter3D\` / \`lines3D\` 在球面上表达真实数据。
 - 该能力面向数据可视化，不用于拼装通用 3D 模型或游戏场景。
 
 ## 主题（可选 \`theme\` 参数）
 
-为 ECharts 图表快速套用配色主题（用户也能在画布右上角的「外观」菜单里切换，无需重新生成）：
+ECharts 图表默认沿用生成结果的配色，背景默认跟随系统，不提供画布内样式选择。仅在用户明确要求指定主题时设置：
 
 - \`auto\`（默认，保留 payload 自带颜色）
 - \`tech-blue\` ECharts 5（官方 v5 默认色板）

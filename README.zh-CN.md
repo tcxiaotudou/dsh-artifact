@@ -35,7 +35,7 @@
 
 ### 从一句指令到原生画布
 
-只需用自然语言描述想要的可视化，`dsh-artifact` 就能在同一段对话中完成整个过程：模型理解需求、生成原生引擎 payload，并将结果渲染为支持外观切换和 PNG 下载的交互式画布。
+只需用自然语言描述想要的可视化，`dsh-artifact` 就能在同一段对话中完成整个过程：模型理解需求、生成原生引擎 payload，并将结果渲染为使用默认外观并支持 PNG 下载的交互式画布。
 
 <p align="center">
   <a href="https://raw.githubusercontent.com/sumarilkkxx/dsh-artifact/master/assets/dsh-artifact-workflow.webp" target="_blank" rel="noopener noreferrer" title="在新标签页中打开完整动图">
@@ -54,7 +54,7 @@
 | **广泛的 ECharts 覆盖** | 原生 JSON 可表达的 series / component：笛卡尔、饼图、雷达、日历热力图、关系图、桑基图、树图、地图、平行坐标、时间轴、`dataset`、`visualMap`、`dataZoom` 等 |
 | **Mermaid 图表与图** | 流程图、时序图、类图、状态图、ER 图、甘特图、旅程图、饼图及 Mermaid 支持的其他图形 |
 | **交互式画布** | tooltip、图例、缩放、拖拽、3D 控制和响应式尺寸均由实际渲染引擎提供 |
-| **外观控制** | 画布内可切换 ECharts 风格主题和深/浅背景；真实贴图地球只提供背景切换，不篡改地理表面颜色 |
+| **默认外观** | 自动采用生成结果的配色和系统背景模式，画布内不提供样式选择 |
 | **PNG 下载** | ECharts、ECharts-GL 和 Mermaid 画布均可按当前背景导出 2× PNG；标准 ECharts 图表和 Mermaid 图还支持 SVG 下载 |
 | **安全边界** | 声明式通道全程纯 JSON；自定义 HTML 运行在 CSP 限制的沙箱 iframe 中 |
 
@@ -88,7 +88,7 @@ dsh plugin --profile web add link:/path/to/dsh-artifact
 
 > 画一个 OAuth 登录的时序图，包含成功与失败分支。
 
-模型会调用 `render_artifact` 并返回对话内的真实画布。适用场景可通过画布内的**外观**切换主题/背景；旁边的**下载**按钮可保存 PNG 图片。
+模型会调用 `render_artifact` 并返回对话内的真实画布。图表直接使用默认外观；通过**下载**按钮可保存 PNG 图片。
 
 ## 引擎契约
 
@@ -156,7 +156,7 @@ dsh plugin --profile web add .
 | 路径 | 说明 |
 |---|---|
 | `index.js` | 宿主工具定义、校验、提示词引导和本地资产路由 |
-| `client.js` | DeepSeek Harness toolview、引擎分发、外观控制和 PNG 导出 |
+| `client.js` | DeepSeek Harness toolview、引擎分发、渲染状态和 PNG 导出 |
 | `assets/` | 已提交的 ECharts、ECharts-GL、Mermaid 与项目媒体资产 |
 | `docs/showcase/` | README 展示动效的源码与像素素材 |
 | `scripts/build.mjs` | 将渲染器发行文件复制到 `assets/` |
@@ -167,7 +167,7 @@ dsh plugin --profile web add .
 
 - [x] 原生 ECharts 与 Mermaid 画布
 - [x] 对原生 JSON ECharts 3D option 的 ECharts-GL 兼容
-- [x] 深浅外观控制与 PNG 导出
+- [x] 自动深浅外观与 PNG 导出
 - [x] 沙箱化 HTML 兜底能力
 - [ ] 从画布回传模型的可选 action round-trip
 - [ ] 更多声明式渲染引擎

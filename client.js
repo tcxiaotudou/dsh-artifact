@@ -599,20 +599,27 @@ window.__ModuleLoader__.load({
       }
     }
     function renderEcharts(el, echarts, option, theme, mode, maps, onExport) {
-      if (!option || typeof option !== 'object') { el.innerHTML = errHtml('invalid echarts option'); return noop }
+      if (!option || typeof option !== 'object') { el.innerHTML = errHtml('invalid echarts option'); if (onExport) onExport(null, [], true); return noop }
       var chart = null
       try {
         registerMaps(echarts, maps)
         chart = echarts.init(el, registerEchartsTheme(echarts, theme, mode))
+        var exportRegistered = false
+        // finished 覆盖动画和渐进渲染完成，分享图片不能截取动画首帧。
+        chart.on('finished', function () {
+          if (!onExport || exportRegistered) return
+          exportRegistered = true
+          onExport(function (format) {
+            var title = option.title && !Array.isArray(option.title) ? option.title.text : undefined
+            if (format === 'svg') return exportEchartsSvg(echarts, option, theme, mode, maps, Math.max(1, el.clientWidth), Math.max(1, el.clientHeight), title)
+            return dataUrlToBlob(chart.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: surfaceFor(mode).background }))
+          }, usesEchartsGl(option) ? ['png'] : ['png', 'svg'])
+        })
         chart.setOption(compileGlOption(option, theme, mode))
-        if (onExport) onExport(function (format) {
-          var title = option.title && !Array.isArray(option.title) ? option.title.text : undefined
-          if (format === 'svg') return exportEchartsSvg(echarts, option, theme, mode, maps, Math.max(1, el.clientWidth), Math.max(1, el.clientHeight), title)
-          return dataUrlToBlob(chart.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: surfaceFor(mode).background }))
-        }, usesEchartsGl(option) ? ['png'] : ['png', 'svg'])
       } catch (e) {
         if (chart) chart.dispose()
         el.innerHTML = errHtml('ECharts render failed: ' + (e && e.message ? e.message : e) + '. Check the ECharts option, required coordinate system/component, and map registration.')
+        if (onExport) onExport(null, [], true)
         return noop
       }
       var ro = new ResizeObserver(function () { chart.resize() })
@@ -649,7 +656,7 @@ window.__ModuleLoader__.load({
     }
 
     function renderMermaid(el, mermaid, code, theme, mode, onExport) {
-      if (typeof code !== 'string' || code.trim() === '') { el.innerHTML = errHtml('empty mermaid code'); return noop }
+      if (typeof code !== 'string' || code.trim() === '') { el.innerHTML = errHtml('empty mermaid code'); if (onExport) onExport(null, [], true); return noop }
       var surface = surfaceFor(mode)
       var themeVariables = mermaidThemeVariables(mode)
       var normalized = normalizeMermaidSource(code)
@@ -685,7 +692,10 @@ window.__ModuleLoader__.load({
           return exportMermaidPng(svg, surface)
         }, ['png', 'svg'])
       }).catch(function (e) {
-        if (!cancelled) el.innerHTML = errHtml(mermaidErrorMessage(e, repaired.code))
+        if (!cancelled) {
+          el.innerHTML = errHtml(mermaidErrorMessage(e, repaired.code))
+          if (onExport) onExport(null, [], true)
+        }
       })
       return function () { cancelled = true; if (onExport) onExport(null); el.innerHTML = '' }
     }
@@ -710,22 +720,9 @@ window.__ModuleLoader__.load({
     // ---------- toolview components ----------
 
     function toolFallback(title) {
-      return React.createElement('div', { 'data-artifact-tool': true, style: { color: 'var(--dsh-muted, #888)', padding: '8px 0', fontFamily: 'monospace', fontSize: '12px' } }, title)
+      return React.createElement('div', { 'data-artifact-tool': true, 'data-artifact-status': 'error', style: { color: 'var(--dsh-muted, #888)', padding: '8px 0', fontFamily: 'monospace', fontSize: '12px' } }, title)
     }
 
-    function PaletteStrip(props) {
-      var palette = paletteFor(props.theme, props.mode) || ['#CBD5E1', '#94A3B8', '#64748B']
-      return React.createElement(
-        'span',
-        { 'aria-hidden': true, style: { display: 'inline-flex', width: 48, height: 8, borderRadius: 99, overflow: 'hidden', flexShrink: 0 } },
-        palette.slice(0, 5).map(function (color, index) {
-          return React.createElement('span', { key: index, style: { flex: 1, background: color } })
-        }),
-      )
-    }
-    function SurfaceSwatch(props) {
-      return React.createElement('span', { 'aria-hidden': true, style: { width: 13, height: 13, borderRadius: 99, flexShrink: 0, border: '1px solid ' + props.surface.border, background: props.surface.background } })
-    }
     function DownloadIcon() {
       return React.createElement('svg', { 'aria-hidden': true, viewBox: '0 0 24 24', width: 15, height: 15, fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' },
         React.createElement('path', { d: 'M12 3v11' }),
@@ -786,89 +783,9 @@ window.__ModuleLoader__.load({
       }
       var disabled = !props.ready || pending
       return React.createElement('button', {
-        type: 'button', disabled: disabled, 'aria-label': '下载图片', title: pending ? '正在生成图片' : '下载图片（在另存为窗口选择格式）', onClick: download,
+        type: 'button', disabled: disabled, 'aria-label': '下载图片', 'data-html2canvas-ignore': true, title: pending ? '正在生成图片' : '下载图片（在另存为窗口选择格式）', onClick: download,
         style: { position: 'absolute', top: 12, right: 12, zIndex: 2147483647, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 32, minHeight: 32, padding: 0, borderRadius: 7, cursor: disabled ? 'default' : 'pointer', border: '1px solid ' + props.surface.border, background: props.surface.panel, color: props.ready ? props.surface.text : props.surface.muted, opacity: props.ready ? 1 : 0.55, boxShadow: '0 1px 3px rgba(0,0,0,0.12)' },
       }, React.createElement(DownloadIcon, null))
-    }
-
-    // A compact, in-canvas menu keeps the chart card quiet until the user
-    // needs styling controls. It is intentionally independent of the renderer
-    // so the same control works above ECharts-GL's multi-canvas WebGL layers.
-    function AppearanceMenu(props) {
-      var openState = React.useState(false)
-      var open = openState[0]
-      var setOpen = openState[1]
-      var menuRef = React.useRef(null)
-      var surface = props.surface
-      var accent = props.palette && props.palette[0] ? props.palette[0] : (resolvedMode(props.mode) === 'dark' ? '#4992FF' : '#5470C6')
-
-      React.useEffect(function () {
-        if (!open || typeof document === 'undefined') return undefined
-        function closeOnOutside(e) {
-          if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false)
-        }
-        document.addEventListener('mousedown', closeOnOutside)
-        return function () { document.removeEventListener('mousedown', closeOnOutside) }
-      }, [open])
-
-      function halt(e) {
-        if (e && e.stopPropagation) e.stopPropagation()
-        if (e && e.preventDefault) e.preventDefault()
-      }
-      function selectTheme(id, e) { halt(e); props.onTheme(id); setOpen(false) }
-      function selectMode(id, e) { halt(e); props.onMode(id) }
-
-      return React.createElement(
-        'div',
-        {
-          ref: menuRef,
-          onClick: function (e) { if (e && e.stopPropagation) e.stopPropagation() },
-          onKeyDown: function (e) { if (e && e.key === 'Escape') { setOpen(false); if (e.stopPropagation) e.stopPropagation() } },
-          // ECharts-GL can create multiple canvas layers. This overlay is a
-          // sibling of the renderer and must always win the stacking contest.
-          style: { position: 'absolute', top: 12, right: 52, zIndex: 2147483647, isolation: 'isolate', transform: 'translateZ(0)', pointerEvents: 'auto', fontFamily: 'inherit' },
-        },
-        React.createElement(
-          'button',
-          {
-            type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': open, title: props.showThemes ? '调整图表外观' : '调整背景模式',
-            onClick: function (e) { halt(e); setOpen(!open) },
-            style: { display: 'inline-flex', alignItems: 'center', gap: 7, minHeight: 32, padding: '5px 10px', borderRadius: 7, cursor: 'pointer', border: '1px solid ' + surface.border, background: surface.panel, color: surface.text, boxShadow: open ? '0 6px 18px rgba(0,0,0,0.18)' : '0 1px 3px rgba(0,0,0,0.12)', fontSize: 12, fontWeight: 600 },
-          },
-          props.showThemes ? React.createElement(PaletteStrip, { theme: props.theme, mode: props.mode }) : React.createElement(SurfaceSwatch, { surface: surface }),
-          props.showThemes ? '外观' : '背景',
-          React.createElement('span', { 'aria-hidden': true, style: { color: surface.muted, fontSize: 10 } }, open ? '▲' : '▼'),
-        ),
-        open ? React.createElement(
-          'div',
-          { role: 'menu', 'aria-label': props.showThemes ? '图表外观' : '背景模式', style: { position: 'absolute', top: 42, right: 0, zIndex: 2147483647, width: 224, padding: 8, borderRadius: 9, border: '1px solid ' + surface.border, background: surface.panel, color: surface.text, boxShadow: '0 12px 28px rgba(0,0,0,0.22)' } },
-          React.createElement('div', { style: { padding: '2px 4px 7px', color: surface.muted, fontSize: 11, fontWeight: 600 } }, '显示模式'),
-          React.createElement(
-            'div',
-            { role: 'group', 'aria-label': '显示模式', style: { display: 'flex', gap: 4, marginBottom: props.showThemes ? 8 : 0, padding: 3, borderRadius: 6, background: resolvedMode(props.mode) === 'dark' ? '#0D0A20' : '#F3F5F8' } },
-            props.modes.map(function (item) {
-              var active = item.id === props.mode.id
-              return React.createElement('button', { key: item.id, type: 'button', 'aria-pressed': active, onClick: function (e) { selectMode(item.id, e) }, style: { flex: 1, minHeight: 28, border: 0, borderRadius: 4, cursor: 'pointer', background: active ? surface.panel : 'transparent', color: active ? accent : surface.muted, boxShadow: active ? '0 1px 3px rgba(0,0,0,0.14)' : 'none', fontSize: 11 } }, item.label)
-            }),
-          ),
-          props.showThemes ? React.createElement(
-            'div',
-            null,
-            React.createElement('div', { style: { height: 1, background: surface.border, margin: '3px 0 6px' } }),
-            React.createElement('div', { style: { padding: '2px 4px 5px', color: surface.muted, fontSize: 11, fontWeight: 600 } }, props.themeLabel || '配色主题'),
-            props.themes.map(function (item) {
-              var active = item.id === props.theme.id
-              return React.createElement(
-                'button',
-                { key: item.id, type: 'button', role: 'menuitemradio', 'aria-checked': active, onClick: function (e) { selectTheme(item.id, e) }, style: { display: 'flex', alignItems: 'center', width: '100%', minHeight: 32, gap: 8, padding: '5px 6px', border: 0, borderRadius: 5, cursor: 'pointer', textAlign: 'left', background: active ? surface.selected : 'transparent', color: active ? accent : surface.text, fontSize: 12 } },
-                React.createElement(PaletteStrip, { theme: item, mode: props.mode }),
-                React.createElement('span', { style: { flex: 1 } }, item.label),
-                active ? React.createElement('span', { 'aria-label': '已选择', style: { color: accent, fontWeight: 700 } }, '✓') : null,
-              )
-            }),
-          ) : null,
-        ) : null,
-      )
     }
 
     function ArtifactToolView(props) {
@@ -876,9 +793,10 @@ window.__ModuleLoader__.load({
       var meta = block && 'meta' in block ? block.meta : undefined
       var containerRef = React.useRef(null)
       var exportRef = React.useRef(null)
-      var exportState = React.useState(false)
-      var exportReady = exportState[0]
-      var setExportReady = exportState[1]
+      var renderState = React.useState('loading')
+      var renderStatus = renderState[0]
+      var setRenderStatus = renderState[1]
+      var exportReady = renderStatus === 'ready'
       var exportFormatsState = React.useState(['png'])
       var exportFormats = exportFormatsState[0]
       var setExportFormats = exportFormatsState[1]
@@ -887,22 +805,8 @@ window.__ModuleLoader__.load({
       var isMermaidArtifact = !!(meta && meta.engine === 'mermaid')
       var showColorThemes = !isMermaidArtifact && !isPhotorealisticGlobe
       var availableThemes = isGlArtifact && showColorThemes ? GL_THEMES : THEMES
-      var themeState = React.useState(showColorThemes && meta && typeof meta.theme === 'string' ? themeById(meta.theme, availableThemes) : THEMES[0])
-      var theme = themeState[0]
-      var setTheme = themeState[1]
-      var modeState = React.useState(meta && typeof meta.mode === 'string' ? modeById(meta.mode) : MODES[0])
-      var mode = modeState[0]
-      var setMode = modeState[1]
-
-      // Reset display preferences when a new result arrives (they are per-card).
-      React.useEffect(function () {
-        var nextIsGlobe = !!(meta && hasGlobeScene(meta.payload))
-        var nextIsMermaid = !!(meta && meta.engine === 'mermaid')
-        var nextCanTheme = !nextIsMermaid && !nextIsGlobe
-        var nextThemes = meta && usesEchartsGl(meta.payload) && nextCanTheme ? GL_THEMES : THEMES
-        setTheme(nextCanTheme && meta && typeof meta.theme === 'string' ? themeById(meta.theme, nextThemes) : THEMES[0])
-        setMode(meta && typeof meta.mode === 'string' ? modeById(meta.mode) : MODES[0])
-      }, [meta])
+      var theme = showColorThemes && meta && typeof meta.theme === 'string' ? themeById(meta.theme, availableThemes) : THEMES[0]
+      var mode = meta && typeof meta.mode === 'string' ? modeById(meta.mode) : MODES[0]
 
       React.useEffect(function () {
         var el = containerRef.current
@@ -910,9 +814,9 @@ window.__ModuleLoader__.load({
         var engine = meta.engine === 'mermaid' ? 'mermaid' : 'echarts'
         var cancelled = false
         var dispose = noop
-        function setExporter(exporter, formats) {
+        function setExporter(exporter, formats, error) {
           exportRef.current = exporter
-          setExportReady(typeof exporter === 'function')
+          setRenderStatus(error ? 'error' : typeof exporter === 'function' ? 'ready' : 'loading')
           setExportFormats(typeof exporter === 'function' && Array.isArray(formats) && formats.length ? formats : ['png'])
         }
         setExporter(null)
@@ -927,11 +831,17 @@ window.__ModuleLoader__.load({
             loadEchartsGl().then(function () {
               if (!cancelled) dispose = renderEcharts(el, api, meta.payload, theme, mode, meta.maps, setExporter)
             }).catch(function (err) {
-              if (!cancelled) el.innerHTML = errHtml('ECharts-GL load failed: ' + (err && err.message ? err.message : err))
+              if (!cancelled) {
+                el.innerHTML = errHtml('ECharts-GL load failed: ' + (err && err.message ? err.message : err))
+                setExporter(null, [], true)
+              }
             })
           } else dispose = renderEcharts(el, api, meta.payload, theme, mode, meta.maps, setExporter)
         }).catch(function (err) {
-          if (!cancelled) el.innerHTML = errHtml('engine load failed: ' + (err && err.message ? err.message : err))
+          if (!cancelled) {
+            el.innerHTML = errHtml('engine load failed: ' + (err && err.message ? err.message : err))
+            setExporter(null, [], true)
+          }
         })
 
         return function () {
@@ -944,17 +854,15 @@ window.__ModuleLoader__.load({
       if (!meta || !meta.payload) return toolFallback(TOOL_NAME)
       var height = typeof meta.height === 'number' && meta.height >= 120 ? meta.height : 360
       var surface = surfaceFor(mode)
-      var palette = paletteFor(theme, mode)
       return React.createElement(
         'div',
-        { 'data-artifact-tool': true, style: { color: surface.text } },
+        { 'data-artifact-tool': true, 'data-artifact-status': renderStatus, style: { color: surface.text } },
         meta.title ? React.createElement('div', { style: { fontWeight: 600, marginBottom: 8, fontSize: 14 } }, meta.title) : null,
         React.createElement(
           'div',
           { style: { position: 'relative', isolation: 'isolate', width: '100%', height: height + 'px', minHeight: '200px', borderRadius: 8, overflow: 'hidden', background: surface.background, border: '1px solid ' + surface.border } },
           React.createElement('div', { ref: containerRef, style: { position: 'absolute', inset: 0, zIndex: 0, width: '100%', height: '100%' } }),
           React.createElement(DownloadButton, { surface: surface, ready: exportReady, formats: exportFormats, title: meta.title || 'diagram', onDownload: function (format) { return exportRef.current && exportRef.current(format) } }),
-          React.createElement(AppearanceMenu, { theme: theme, mode: mode, themes: availableThemes, showThemes: showColorThemes, themeLabel: isGlArtifact ? '3D 单色主题' : '配色主题', modes: MODES, surface: surface, palette: palette, onTheme: function (id) { setTheme(themeById(id, availableThemes)) }, onMode: function (id) { setMode(modeById(id)) } }),
         ),
       )
     }
