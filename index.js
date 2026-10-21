@@ -14,6 +14,8 @@
 // self-registered route under /plugins/dsh-artifact/assets/*.
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
+import { runInContext } from 'node:vm'
+import { validateMermaid } from './assets/mermaid-validation.js'
 
 const PKG = 'dsh-artifact'
 const TOOL_NAME = 'render_artifact'
@@ -25,6 +27,7 @@ const ASSET_CONTENT_TYPES = new Map([
   ['echarts.min.js', 'text/javascript; charset=utf-8'],
   ['echarts-gl.min.js', 'text/javascript; charset=utf-8'],
   ['mermaid.min.js', 'text/javascript; charset=utf-8'],
+  ['mermaid-validation.js', 'text/javascript; charset=utf-8'],
   ['globe/world.topo.bathy.200401.jpg', 'image/jpeg'],
   ['globe/starfield.jpg', 'image/jpeg'],
   ['globe/pisa.hdr', 'image/vnd.radiance'],
@@ -34,6 +37,8 @@ const ASSET_CONTENT_TYPES = new Map([
 const OPTION_MAX_BYTES = 1_000_000
 const CODE_MAX_BYTES = 100_000
 const HTML_MAX_BYTES = 1_000_000
+let mermaidParser
+let mermaidValidationTail = Promise.resolve()
 
 export const name = PKG
 export const inject = ['systemPrompt', 'tools', 'skills']
@@ -76,7 +81,8 @@ const SKILL_CONTENT = `# dsh-artifact 渲染指南
 \`{"engine":"mermaid","code":"flowchart TD\\n  startNode[\"开始\"] --> reviewNode{\"需要审核？\"}\\n  reviewNode -->|是| terminalNode[\"结束\"]\\n  classDef terminal fill:#F0564A,color:#fff,stroke:#D63D32,stroke-width:1px\\n  class terminalNode terminal"}\`
 - \`code\` 是原始 Mermaid 源码：flowchart / sequenceDiagram / classDiagram / gantt / stateDiagram / pie / erDiagram / journey。不要包在 Markdown 代码围栏中；每条语句独占一行，避免将图源码写成 JSON、HTML 或 SVG。
 - **ID 与 classDef 名称必须使用安全 ASCII 标识符**：以字母开头，只含字母、数字和下划线，例如 \`startNode\`、\`reviewStep\`、\`terminal\`。不要用 Mermaid 保留词 \`end\`、\`subgraph\`、\`class\`、\`classDef\`、\`style\`、\`direction\` 作为节点 ID 或样式类名。要显示“结束”，写 \`terminalNode[\"结束\"]\`，不要写 \`end\` 或 \`classDef end\`。
-- 标签含中文、空格、括号、冒号、引号或其他特殊字符时，统一使用 \`nodeId[\"标签\"]\` 形式；标签与 ID 分离。flowchart 的 \`end\` 文本必须写成 \`End\` / \`结束\` 或置于引号标签中。
+- flowchart 标签含中文、空格、括号、冒号、引号或其他特殊字符时，使用 \`nodeId[\"标签\"]\` 形式；标签与 ID 分离。flowchart 的 \`end\` 文本必须写成 \`End\` / \`结束\` 或置于引号标签中。
+- gantt 使用 \`任务名 :状态, ID, 开始日期, 结束日期或时长\`；状态可省略，时间数据遵循 \`dateFormat\`。任务名中的时间写成 \`16：22\` 或 \`16时22分\`，不能包含作为语法分隔符的半角冒号；日期元数据中的 \`HH:mm\` 保留半角冒号。校验失败时根据工具错误修正源码后重试，不把错误当成已生成图表。
 - 样式使用官方 \`classDef className fill:#...,stroke:#...,color:#...\` 与 \`class nodeId className\` 语法；属性用英文逗号分隔。不要依赖外部 CSS，也不要使用 JavaScript 回调。
 - flowchart 连线中 \`o\` / \`x\` 开头的目标 ID 要大写或在连线后留空格，避免被误解为圆/叉边。不同图类型遵循官方 Mermaid 语法；拿不准时使用对应图类型的最小原生写法，而不是拼接 flowchart 语法。
 
@@ -319,7 +325,7 @@ function checkMaps(maps) {
 }
 
 /** Validate a Mermaid diagram source; returns a message on failure, else null. */
-function checkMermaid(code) {
+async function checkMermaid(code) {
   if (typeof code !== 'string' || code.trim() === '') {
     return `${TOOL_NAME}: "code" must be a non-empty Mermaid diagram source string (engine=mermaid).`
   }
@@ -343,7 +349,26 @@ function checkMermaid(code) {
   if (/^\s*style\s+end(?=\s|,|;|$)/m.test(code) || /^\s*end\s*(?:\[|\(|\{|-->|---|==>|-\.->)/m.test(code)) {
     return `${TOOL_NAME}: Mermaid reserves lowercase "end" as a flowchart identifier. Use \`terminalNode\` as the ID and write the display label separately: \`terminalNode["End"]\` or \`terminalNode["结束"]\`.`
   }
-  return null
+  // 与浏览器使用同一 Mermaid 资产；仅解析声明式源码，不运行输入中的脚本或加载外部资源。
+  const validation = mermaidValidationTail.then(async () => {
+    if (!mermaidParser) {
+      const { JSDOM } = await import('jsdom')
+      const dom = new JSDOM('', { runScripts: 'outside-only' })
+      dom.window.structuredClone = structuredClone
+      runInContext(await readFile(new URL('./assets/mermaid.min.js', import.meta.url), 'utf8'), dom.getInternalVMContext())
+      mermaidParser = dom.window.mermaid
+    }
+    mermaidParser.initialize({ startOnLoad: false, securityLevel: 'strict' })
+    await validateMermaid(mermaidParser, code)
+  })
+  // Mermaid 的配置与数据库是全局状态，并发工具调用也必须串行校验，失败不阻塞后续请求。
+  mermaidValidationTail = validation.catch(() => {})
+  try {
+    await validation
+    return null
+  } catch (error) {
+    return `${TOOL_NAME}: Mermaid validation failed: ${error && error.message ? error.message : String(error)}`
+  }
 }
 
 function engineLabel(engine) {
@@ -416,9 +441,9 @@ function createRenderArtifactTool() {
       const title = typeof a.title === 'string' && a.title.trim() !== '' ? `「${a.title}」` : ''
       if (engine === 'mermaid') {
         const code = a.code
-        const err = checkMermaid(code)
-        if (err) return err
-        return `Rendered Mermaid diagram${title}. The user now sees the interactive diagram card.`
+        const err = await checkMermaid(code)
+        if (err) throw new Error(err)
+        return `Validated Mermaid diagram${title}. The interactive card is queued for browser rendering; its render status reports whether the diagram is ready.`
       }
       const option = normalizeObjectPayload(a.option)
       const err = checkEcharts(option)

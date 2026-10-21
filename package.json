@@ -30,6 +30,9 @@
   "scripts": {
     "build": "node scripts/build.mjs"
   },
+  "dependencies": {
+    "jsdom": "27.4.0"
+  },
   "devDependencies": {
     "echarts": "^6.1.0",
     "echarts-gl": "^2.1.0",

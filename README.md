@@ -162,6 +162,7 @@ dsh plugin --profile web add .
 | `scripts/build.mjs` | Copies renderer distributions into `assets/` |
 
 The plugin has no `@deepseek-ai/*` runtime imports. ECharts, ECharts-GL, and Mermaid are build-time dependencies used to create the committed local assets.
+Mermaid input is validated with the same bundled engine on the host and in the browser. The host uses jsdom without input-script execution or external resource loading; Gantt tasks are compiled as well as parsed. Invalid input throws a tool error for correction, and valid input remains queued until the browser reports its render status. Display times inside Gantt task names with a full-width colon (for example, `16：22`); keep ordinary colons in date/time metadata.
 
 ## Roadmap
 

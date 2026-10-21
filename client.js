@@ -124,7 +124,7 @@ window.__ModuleLoader__.load({
       return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] })
     }
     function errHtml(msg) {
-      return '<div style="color:#f87171;padding:8px 0;font-size:12px">' + escapeHtml(msg) + '</div>'
+      return '<div role="alert" style="color:#f87171;padding:8px 0;font-size:12px">' + escapeHtml(msg) + '</div>'
     }
     function noop() {}
     // ---------- themes ----------
@@ -631,17 +631,6 @@ window.__ModuleLoader__.load({
       return String(code).replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').trim()
     }
 
-    // The official Mermaid grammar reserves lowercase `end`. Repair only the
-    // exact class-name failure that has an unambiguous replacement; labels and
-    // subgraph terminators are intentionally left untouched.
-    function repairMermaidReservedClassName(code) {
-      if (!/^\s*classDef\s+end(?=\s|,|;|$)/m.test(code)) return { code: code, repaired: false }
-      var repaired = code.replace(/^(\s*classDef\s+)end(?=\s|,|;|$)/m, '$1dshTerminal')
-      repaired = repaired.replace(/^(\s*class\s+[^\n]*?\s)end(?=\s*(?:;|$))/gm, '$1dshTerminal')
-      repaired = repaired.replace(/:::end(?=\W|$)/g, ':::dshTerminal')
-      return { code: repaired, repaired: true }
-    }
-
     function mermaidErrorMessage(error, code) {
       var raw = error && error.message ? error.message : String(error || 'unknown parser error')
       var line = raw.match(/line\s+(\d+)/i)
@@ -660,7 +649,6 @@ window.__ModuleLoader__.load({
       var surface = surfaceFor(mode)
       var themeVariables = mermaidThemeVariables(mode)
       var normalized = normalizeMermaidSource(code)
-      var repaired = repairMermaidReservedClassName(normalized)
       var id = 'dsh-mm-' + Math.random().toString(36).slice(2, 10)
       var cancelled = false
       enqueueMermaidRender(function () {
@@ -670,8 +658,11 @@ window.__ModuleLoader__.load({
           themeVariables: themeVariables,
           flowchart: { htmlLabels: false },
         })
-        return Promise.resolve(mermaid.parse(repaired.code)).then(function () {
-          return mermaid.render(id, repaired.code)
+        return import(assetUrl('mermaid-validation.js')).then(function (validation) {
+          return validation.validateMermaid(mermaid, normalized)
+        }).then(function () {
+          if (cancelled) return null
+          return mermaid.render(id, normalized, el)
         })
       }).then(function (r) {
         if (cancelled) return
@@ -693,7 +684,8 @@ window.__ModuleLoader__.load({
         }, ['png', 'svg'])
       }).catch(function (e) {
         if (!cancelled) {
-          el.innerHTML = errHtml(mermaidErrorMessage(e, repaired.code))
+          console.error('[dsh-artifact] Mermaid render failed', e)
+          el.innerHTML = errHtml(mermaidErrorMessage(e, normalized))
           if (onExport) onExport(null, [], true)
         }
       })
